@@ -1,0 +1,2 @@
+bert_config: 'configs/config_bert.json'
+embed_dim: 256
