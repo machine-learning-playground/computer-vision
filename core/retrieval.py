@@ -7,6 +7,8 @@ from models.xbert import BertConfig, BertForMaskedLM
 
 
 def main(args, config):
+    train_dataset = create_dataset(config)
+
     text_encoder_mode = args.text_encoder
     embed_dim = config["embed_dim"]  # out_features: 256
 

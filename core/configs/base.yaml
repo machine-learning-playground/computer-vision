@@ -1,2 +1,14 @@
+train_file:  ['./dataset/RSTPReid/processed_data/train.json']
+train_image_root: './dataset/RSTPReid/imgs'
+batch_size_train: 13
+
+
 bert_config: 'configs/config_bert.json'
 embed_dim: 256
+max_words: 50
+
+
+image_res: 384
+
+
+weak_pos_pair_probability: 0.1
