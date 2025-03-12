@@ -12,3 +12,4 @@ image_res: 384
 
 
 weak_pos_pair_probability: 0.1
+queue_size: 65536
