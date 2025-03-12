@@ -18,8 +18,9 @@ def main(args, config):
 
     # train
     model.train()
-
     for image1, image2, text1, text2, idx, replace in train_loader:
+        # image1, image2 → (batch_size, C, H, W) where C is channels, H is height, W is width.
+        # text1, text2 → (batch_size, seq_length)
         image1 = image1.to(device, non_blocking=True)
         image2 = image2.to(device, non_blocking=True)
         idx = idx.to(device, non_blocking=True)
