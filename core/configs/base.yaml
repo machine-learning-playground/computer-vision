@@ -1,6 +1,6 @@
 train_file:  ['./dataset/RSTPReid/processed_data/train.json']
 train_image_root: './dataset/RSTPReid/imgs'
-batch_size_train: 13
+batch_size_train: 2
 
 
 bert_config: 'configs/config_bert.json'

@@ -48,6 +48,7 @@ class ALBEF(nn.Module):
         text_output = self.text_encoder.bert(
             text2.input_ids, attention_mask=text2.attention_mask, return_dict=True, mode="text"
         )
+        print('----------------------------', text2, text_output)
         text_embeds = text_output.last_hidden_state
         text_feat = F.normalize(self.text_proj(text_embeds[:, 0, :]), dim=-1)
 
