@@ -5,6 +5,7 @@ from PIL import Image
 from PIL import ImageFile
 from torch.utils.data import Dataset
 from collections import defaultdict
+from dataset.utils import pre_caption
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 Image.MAX_IMAGE_PIXELS = None
@@ -18,12 +19,13 @@ class ps_train_dataset(Dataset):
         self.transform = transform
         self.image_root = image_root
         self.max_words = max_words
-        self.weak_pos_pair_probability = weak_pos_pair_probability  # 待修改
-        self.person2image = defaultdict(list)
-        self.person2text = defaultdict(list)
-        person_id2idx = {}
+        self.weak_pos_pair_probability = weak_pos_pair_probability
+        person_id2idx = {}  # {"dataset_id": idx}
+        self.person2image = defaultdict(list)  # { idx: file_path[] }
+        self.person2text = defaultdict(list)  # { idx: caption[] }
+        self.pairs = []  # {file_path, caption, idx}[]
         n = 0
-        self.pairs = []
+
         for ann in anns:
             person_id = ann["id"]
             if person_id not in person_id2idx.keys():
