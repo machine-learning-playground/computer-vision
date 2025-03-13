@@ -43,12 +43,23 @@ class ALBEF(nn.Module):
         ###  Momentum models  ###
         self.text_encoder_m = BertForMaskedLM.from_pretrained(text_encoder, config=bert_config)
         self.text_proj_m = nn.Linear(self.text_width, embed_dim)
-        # self.model_pairs = [
-        #     [self.visual_encoder, self.visual_encoder_m],
-        #     [self.vision_proj, self.vision_proj_m],
-        #     [self.text_encoder, self.text_encoder_m],
-        #     [self.text_proj, self.text_proj_m],
-        # ]
+        self.visual_encoder_m = VisionTransformer(
+            img_size=config["image_res"],
+            patch_size=16,
+            embed_dim=768,
+            depth=12,
+            num_heads=12,
+            mlp_ratio=4,
+            qkv_bias=True,
+            norm_layer=partial(nn.LayerNorm, eps=1e-6),
+        )
+        self.vision_proj_m = nn.Linear(vision_width, embed_dim)
+        self.model_pairs = [
+            [self.visual_encoder, self.visual_encoder_m],
+            [self.vision_proj, self.vision_proj_m],
+            [self.text_encoder, self.text_encoder_m],
+            [self.text_proj, self.text_proj_m],
+        ]
         # self.copy_params()
 
         ###  Create the queue  ###
@@ -69,7 +80,7 @@ class ALBEF(nn.Module):
         ###  Extract image features  ###
         image_embeds = self.visual_encoder(image1)  # tensor([batch, num_tokens, vision_width])
         # num_tokens = (img_size / patch_size)^2 + 1 (CLS token)  ||  (384 / 16)^2 + 1 = 577
-        image_atts = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(image1.device)
+        image_attn_mask = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(image1.device)
         image_feat = F.normalize(self.vision_proj(image_embeds[:, 0, :]), dim=-1)
 
     @torch.no_grad()
