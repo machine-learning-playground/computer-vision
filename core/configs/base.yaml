@@ -9,6 +9,7 @@ max_words: 50
 
 
 image_res: 384
+vision_width: 768
 
 
 weak_pos_pair_probability: 0.1

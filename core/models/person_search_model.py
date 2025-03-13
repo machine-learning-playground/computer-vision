@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 
+from models.vit import VisionTransformer
 from models.xbert import BertConfig, BertForMaskedLM
 
 
@@ -18,12 +19,26 @@ class ALBEF(nn.Module):
         self.tokenizer = tokenizer
         # in_features: 768 (must be a multiple of the number of attention heads (12))
         embed_dim = config["embed_dim"]  # out_features: 256
-        bert_config = BertConfig.from_json_file(config["bert_config"])
 
         ###  Text encoder  ###
+        bert_config = BertConfig.from_json_file(config["bert_config"])
         self.text_encoder = BertForMaskedLM.from_pretrained(text_encoder, config=bert_config)
         self.text_width = self.text_encoder.config.hidden_size
         self.text_proj = nn.Linear(self.text_width, embed_dim)  # 768 → 256
+
+        ###  Vision encoder  ###
+        vision_width = config["vision_width"]
+        self.visual_encoder = VisionTransformer(
+            img_size=config["image_res"],
+            patch_size=16,
+            embed_dim=768,
+            depth=12,
+            num_heads=12,
+            mlp_ratio=4,
+            qkv_bias=True,
+            norm_layer=partial(nn.LayerNorm, eps=1e-6),
+        )
+        self.vision_proj = nn.Linear(vision_width, embed_dim)  # 768 → 256
 
         ###  Momentum models  ###
         self.text_encoder_m = BertForMaskedLM.from_pretrained(text_encoder, config=bert_config)
@@ -44,13 +59,18 @@ class ALBEF(nn.Module):
         self.text_queue = nn.functional.normalize(self.text_queue, dim=0)
 
     def forward(self, image1, image2, text1, text2, alpha, idx, replace):
-        # extract text features
+        ###  Extract text features  ###
         text_output = self.text_encoder.bert(
             text2.input_ids, attention_mask=text2.attention_mask, return_dict=True, mode="text"
         )
-        print('----------------------------', text2, text_output)
-        text_embeds = text_output.last_hidden_state
+        text_embeds = text_output.last_hidden_state  # tensor([batch, seq_length, hidden_size])
         text_feat = F.normalize(self.text_proj(text_embeds[:, 0, :]), dim=-1)
+
+        ###  Extract image features  ###
+        image_embeds = self.visual_encoder(image1)  # tensor([batch, num_tokens, vision_width])
+        # num_tokens = (img_size / patch_size)^2 + 1 (CLS token)  ||  (384 / 16)^2 + 1 = 577
+        image_atts = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(image1.device)
+        image_feat = F.normalize(self.vision_proj(image_embeds[:, 0, :]), dim=-1)
 
     @torch.no_grad()
     def copy_params(self):
