@@ -12,5 +12,6 @@ image_res: 384
 vision_width: 768
 
 
+momentum: 0.995
 weak_pos_pair_probability: 0.1
 queue_size: 65536

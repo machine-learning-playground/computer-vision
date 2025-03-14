@@ -41,6 +41,8 @@ class ALBEF(nn.Module):
         self.vision_proj = nn.Linear(vision_width, embed_dim)  # 768 → 256
 
         ###  Momentum models  ###
+        self.momentum = config["momentum"]
+
         self.text_encoder_m = BertForMaskedLM.from_pretrained(text_encoder, config=bert_config)
         self.text_proj_m = nn.Linear(self.text_width, embed_dim)
         self.visual_encoder_m = VisionTransformer(
