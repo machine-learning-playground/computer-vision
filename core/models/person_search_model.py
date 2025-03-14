@@ -17,12 +17,12 @@ class ALBEF(nn.Module):
         super().__init__()
 
         self.tokenizer = tokenizer
-        # in_features: 768 (must be a multiple of the number of attention heads (12))
         embed_dim = config["embed_dim"]  # out_features: 256
 
         ###  Text encoder  ###
         bert_config = BertConfig.from_json_file(config["bert_config"])
         self.text_encoder = BertForMaskedLM.from_pretrained(text_encoder, config=bert_config)
+        # in_features: 768 (must be a multiple of the number of attention heads (12))
         self.text_width = self.text_encoder.config.hidden_size
         self.text_proj = nn.Linear(self.text_width, embed_dim)  # 768 → 256
 
@@ -60,13 +60,15 @@ class ALBEF(nn.Module):
             [self.text_encoder, self.text_encoder_m],
             [self.text_proj, self.text_proj_m],
         ]
-        # self.copy_params()
+        self.copy_params()
 
         ###  Create the queue  ###
         self.queue_size = config["queue_size"]
-        self.register_buffer("text_queue", torch.randn(embed_dim, self.queue_size))
-        self.register_buffer("idx_queue", torch.full((1, self.queue_size), -100))
-        self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long))
+        self.register_buffer("text_queue", torch.randn(embed_dim, self.queue_size))  #  tensor([256, 65536])
+        self.register_buffer("image_queue", torch.randn(embed_dim, self.queue_size))  #  tensor([256, 65536])
+        self.register_buffer("idx_queue", torch.full((1, self.queue_size), -100))  # tensor([1, 65536]) filled with -100
+        self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long))  # tensor([1])  |  Queue pointer
+        self.image_queue = nn.functional.normalize(self.image_queue, dim=0)
         self.text_queue = nn.functional.normalize(self.text_queue, dim=0)
 
     def forward(self, image1, image2, text1, text2, alpha, idx, replace):
@@ -81,14 +83,24 @@ class ALBEF(nn.Module):
         image_embeds = self.visual_encoder(image1)  # tensor([batch, num_tokens, vision_width])
         # num_tokens = (img_size / patch_size)^2 + 1 (CLS token)  ||  (384 / 16)^2 + 1 = 577
         image_attn_mask = torch.ones(image_embeds.size()[:-1], dtype=torch.long).to(image1.device)
+        # image_attn_mask = tensor([batch, num_tokens])
         image_feat = F.normalize(self.vision_proj(image_embeds[:, 0, :]), dim=-1)
+
+        # Contrastive loss
+        idx = idx.view(-1, 1)  # reshape from [batch_size] to [batch_size, 1]
+        idx_all = torch.cat([idx.t(), self.idx_queue.clone().detach()], dim=1)
+        pos_idx = torch.eq(idx, idx_all).float()
+        sim_targets = pos_idx / pos_idx.sum(1, keepdim=True)
+
+        with torch.no_grad():
+            self._momentum_update()
 
     @torch.no_grad()
     def copy_params(self):
         for model_pair in self.model_pairs:
             for param, param_m in zip(model_pair[0].parameters(), model_pair[1].parameters()):
-                param_m.data.copy_(param.data)  # initialize
-                param_m.requires_grad = False  # not update by gradient
+                param_m.data.copy_(param.data)  # Copy weights from online to momentum
+                param_m.requires_grad = False  # Prevents gradient updates in momentum model
 
     @torch.no_grad()
     def _momentum_update(self):
