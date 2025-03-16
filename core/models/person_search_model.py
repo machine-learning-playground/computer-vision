@@ -128,6 +128,8 @@ class ALBEF(nn.Module):
         loss_t2t = -torch.sum(F.log_softmax(sim_t2t, dim=1) * sim_t2t_targets, dim=1).mean()
         loss_cl = (loss_i2t + loss_t2i + loss_i2i + loss_t2t) / 4
 
+        self._dequeue_and_enqueue(image_feat_m, text_feat_m, idx)
+
         return loss_cl
 
     @torch.no_grad()
