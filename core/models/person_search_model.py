@@ -41,6 +41,7 @@ class ALBEF(nn.Module):
         self.vision_proj = nn.Linear(vision_width, embed_dim)  # 768 → 256
 
         ###  Momentum models  ###
+        self.temp = nn.Parameter(torch.ones([]) * config["temp"])
         self.momentum = config["momentum"]
 
         self.text_encoder_m = BertForMaskedLM.from_pretrained(text_encoder, config=bert_config)
@@ -106,6 +107,29 @@ class ALBEF(nn.Module):
             image_feat_m = F.normalize(self.vision_proj_m(image_embeds_m[:, 0, :]), dim=-1)
             image_feat_all = torch.cat([image_feat_m.t(), self.image_queue.clone().detach()], dim=1)
 
+            sim_i2t_m = image_feat_m @ text_feat_all / self.temp
+            sim_t2i_m = text_feat_m @ image_feat_all / self.temp
+            sim_i2i_m = image_feat_m @ image_feat_all / self.temp
+            sim_t2t_m = text_feat_m @ text_feat_all / self.temp
+
+            sim_i2t_targets = alpha * F.softmax(sim_i2t_m, dim=1) + (1 - alpha) * sim_targets
+            sim_t2i_targets = alpha * F.softmax(sim_t2i_m, dim=1) + (1 - alpha) * sim_targets
+            sim_i2i_targets = alpha * F.softmax(sim_i2i_m, dim=1) + (1 - alpha) * sim_targets
+            sim_t2t_targets = alpha * F.softmax(sim_t2t_m, dim=1) + (1 - alpha) * sim_targets
+
+        sim_i2t = image_feat @ text_feat_all / self.temp
+        sim_t2i = text_feat @ image_feat_all / self.temp
+        sim_i2i = image_feat @ image_feat_all / self.temp
+        sim_t2t = text_feat @ text_feat_all / self.temp
+
+        loss_i2t = -torch.sum(F.log_softmax(sim_i2t, dim=1) * sim_i2t_targets, dim=1).mean()
+        loss_t2i = -torch.sum(F.log_softmax(sim_t2i, dim=1) * sim_t2i_targets, dim=1).mean()
+        loss_i2i = -torch.sum(F.log_softmax(sim_i2i, dim=1) * sim_i2i_targets, dim=1).mean()
+        loss_t2t = -torch.sum(F.log_softmax(sim_t2t, dim=1) * sim_t2t_targets, dim=1).mean()
+        loss_cl = (loss_i2t + loss_t2i + loss_i2i + loss_t2t) / 4
+
+        return loss_cl
+
     @torch.no_grad()
     def copy_params(self):
         for model_pair in self.model_pairs:
@@ -118,3 +142,44 @@ class ALBEF(nn.Module):
         for model_pair in self.model_pairs:
             for param, param_m in zip(model_pair[0].parameters(), model_pair[1].parameters()):
                 param_m.data = param_m.data * self.momentum + param.data * (1.0 - self.momentum)
+
+    @torch.no_grad()
+    def _dequeue_and_enqueue(self, image_feat, text_feat, idx):
+        # gather keys before updating queue
+        image_feats = concat_all_gather(image_feat)
+        text_feats = concat_all_gather(text_feat)
+        idxs = concat_all_gather(idx)
+        batch_size = image_feats.shape[0]
+        ptr = int(self.queue_ptr)
+        # replace the keys at ptr (dequeue and enqueue)
+        empty = self.image_queue.size(1) - ptr
+        if batch_size <= empty:
+            self.image_queue[:, ptr : ptr + batch_size] = image_feats.T
+            self.text_queue[:, ptr : ptr + batch_size] = text_feats.T
+            self.idx_queue[:, ptr : ptr + batch_size] = idxs.T
+        else:
+            self.image_queue[:, ptr:] = image_feats[:empty].T
+            self.text_queue[:, ptr:] = text_feats[:empty].T
+            self.idx_queue[:, ptr:] = idxs[:empty].T
+            self.image_queue[:, : batch_size - empty] = image_feats[empty:].T
+            self.text_queue[:, : batch_size - empty] = text_feats[empty:].T
+            self.idx_queue[:, : batch_size - empty] = idxs[empty:].T
+        ptr = (ptr + batch_size) % self.queue_size  # move pointer
+        self.queue_ptr[0] = ptr
+
+
+@torch.no_grad()
+def concat_all_gather(tensor):
+    """
+    Performs all_gather operation on the provided tensors.
+    If not in distributed mode, it simply returns the input tensor.
+    *** Warning ***: torch.distributed.all_gather has no gradient.
+    """
+    if torch.distributed.is_available() and torch.distributed.is_initialized():
+        world_size = torch.distributed.get_world_size()
+        tensors_gather = [torch.ones_like(tensor) for _ in range(world_size)]
+        torch.distributed.all_gather(tensors_gather, tensor, async_op=False)
+        return torch.cat(tensors_gather, dim=0)
+
+    # If not in distributed mode, return the tensor as is
+    return tensor
