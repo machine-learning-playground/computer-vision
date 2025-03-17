@@ -144,9 +144,9 @@ class ALBEF(nn.Module):
 
         with torch.no_grad():
             bs = image1.size(0)
-            weights_i2t = F.softmax(sim_i2t[:, :bs], dim=1)
+            weights_i2t = F.softmax(sim_i2t[:, :bs], dim=1)  # tensor([batch, batch])
             weights_t2i = F.softmax(sim_t2i[:, :bs], dim=1)
-            mask = torch.eq(idx, idx.T)
+            mask = torch.eq(idx, idx.T)  # tensor([batch, batch]) of Bool
             print("======", weights_i2t, weights_t2i, mask)
             weights_i2t.masked_fill_(mask, 0)
             weights_t2i.masked_fill_(mask, 0)
