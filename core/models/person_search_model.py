@@ -155,27 +155,27 @@ class ALBEF(nn.Module):
         # Select a negative image for each text
         image_neg_idx = torch.multinomial(weights_t2i, 1).flatten()
         print("++++++", image_neg_idx)
-        # image_embeds_neg = image_embeds[image_neg_idx]
-        # # select a negative text for each image
-        # text_neg_idx = torch.multinomial(weights_i2t, 1).flatten()
-        # text_embeds_neg = text_embeds[text_neg_idx]
-        # text_atts_neg = text2.attention_mask[text_neg_idx]
-        # # forward the negative image-text pairs
-        # text_embeds_all = torch.cat([text_embeds, text_embeds_neg], dim=0)
-        # text_atts_all = torch.cat([text2.attention_mask, text_atts_neg], dim=0)
-        # image_embeds_all = torch.cat([image_embeds_neg, image_embeds], dim=0)
-        # image_atts_all = torch.cat([image_atts, image_atts], dim=0)
-        # output_neg_cross = self.text_encoder.bert(
-        #     encoder_embeds=text_embeds_all,
-        #     attention_mask=text_atts_all,
-        #     encoder_hidden_states=image_embeds_all,
-        #     encoder_attention_mask=image_atts_all,
-        #     return_dict=True,
-        #     mode="fusion",
-        # )
-        # vl_embeddings = torch.cat(
-        #     [output_pos.last_hidden_state[:, 0, :], output_neg_cross.last_hidden_state[:, 0, :]], dim=0
-        # )
+        image_embeds_neg = image_embeds[image_neg_idx]
+        # select a negative text for each image
+        text_neg_idx = torch.multinomial(weights_i2t, 1).flatten()
+        text_embeds_neg = text_embeds[text_neg_idx]
+        text_attn_neg = text2.attention_mask[text_neg_idx]
+        # forward the negative image-text pairs
+        text_embeds_all = torch.cat([text_embeds, text_embeds_neg], dim=0)
+        text_attn_all = torch.cat([text2.attention_mask, text_attn_neg], dim=0)
+        image_embeds_all = torch.cat([image_embeds_neg, image_embeds], dim=0)
+        image_attn_all = torch.cat([image_attn_mask, image_attn_mask], dim=0)
+        output_neg_cross = self.text_encoder.bert(
+            encoder_embeds=text_embeds_all,
+            attention_mask=text_attn_all,
+            encoder_hidden_states=image_embeds_all,
+            encoder_attention_mask=image_attn_all,
+            return_dict=True,
+            mode="fusion",
+        )
+        vl_embeddings = torch.cat(
+            [output_pos.last_hidden_state[:, 0, :], output_neg_cross.last_hidden_state[:, 0, :]], dim=0
+        )
         # vl_output = self.itm_head(vl_embeddings)
         # itm_labels = torch.cat([torch.ones(bs, dtype=torch.long), torch.zeros(2 * bs, dtype=torch.long)], dim=0).to(
         #     image1.device
