@@ -67,6 +67,10 @@ class ALBEF(nn.Module):
 
         ###  Create the queue  ###
         self.queue_size = config["queue_size"]
+        self.itm_head = nn.Linear(self.text_width, 2)
+        self.prd_head = nn.Linear(self.text_width, 2)
+        self.mrtd_head = nn.Linear(self.text_width, 2)
+
         self.register_buffer("text_queue", torch.randn(embed_dim, self.queue_size))  #  tensor([256, 65536])
         self.register_buffer("image_queue", torch.randn(embed_dim, self.queue_size))  #  tensor([256, 65536])
         self.register_buffer("idx_queue", torch.full((1, self.queue_size), -100))  # tensor([1, 65536]) filled with -100
@@ -147,14 +151,11 @@ class ALBEF(nn.Module):
             weights_i2t = F.softmax(sim_i2t[:, :bs], dim=1)  # tensor([batch, batch])
             weights_t2i = F.softmax(sim_t2i[:, :bs], dim=1)
             mask = torch.eq(idx, idx.T)  # tensor([batch, batch]) of Bool
-            print("======", weights_i2t, weights_t2i, mask)
             weights_i2t.masked_fill_(mask, 0)
             weights_t2i.masked_fill_(mask, 0)
-            print("------", weights_i2t, weights_t2i)
 
         # Select a negative image for each text
         image_neg_idx = torch.multinomial(weights_t2i, 1).flatten()
-        print("++++++", image_neg_idx)
         image_embeds_neg = image_embeds[image_neg_idx]
         # select a negative text for each image
         text_neg_idx = torch.multinomial(weights_i2t, 1).flatten()
@@ -176,15 +177,16 @@ class ALBEF(nn.Module):
         vl_embeddings = torch.cat(
             [output_pos.last_hidden_state[:, 0, :], output_neg_cross.last_hidden_state[:, 0, :]], dim=0
         )
-        # vl_output = self.itm_head(vl_embeddings)
-        # itm_labels = torch.cat([torch.ones(bs, dtype=torch.long), torch.zeros(2 * bs, dtype=torch.long)], dim=0).to(
-        #     image1.device
-        # )
-        # loss_pitm = F.cross_entropy(vl_output, itm_labels)
-        # # Positive Relation Detection
-        # prd_output = self.prd_head(output_pos.last_hidden_state[:, 0, :])
-        # loss_prd = F.cross_entropy(prd_output, replace)
+        vl_output = self.itm_head(vl_embeddings)
+        itm_labels = torch.cat([torch.ones(bs, dtype=torch.long), torch.zeros(2 * bs, dtype=torch.long)], dim=0).to(
+            image1.device
+        )
+        loss_pitm = F.cross_entropy(vl_output, itm_labels)
 
+        # Positive Relation Detection
+        prd_output = self.prd_head(output_pos.last_hidden_state[:, 0, :])
+        loss_prd = F.cross_entropy(prd_output, replace)
+        print("loss: ", loss_cl, loss_pitm, loss_prd)
         return loss_cl
 
     @torch.no_grad()
