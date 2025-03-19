@@ -209,8 +209,20 @@ class ALBEF(nn.Module):
             )
             prediction = F.softmax(logits_m, dim=-1)
 
-        print("loss: ", loss_cl, loss_pitm, loss_prd)
-        return loss_cl
+        mlm_output = self.text_encoder(
+            input_ids,
+            attention_mask=text1.attention_mask,
+            encoder_hidden_states=image_embeds,
+            encoder_attention_mask=image_attn_mask,
+            return_dict=True,
+            labels=labels,
+            soft_labels=prediction,
+            alpha=alpha,
+        )
+        loss_mlm = mlm_output.loss
+
+        print("loss: ", loss_cl, loss_pitm, loss_mlm, loss_prd)
+        return loss_cl, loss_pitm, loss_mlm, loss_prd
 
     @torch.no_grad()
     def copy_params(self):
