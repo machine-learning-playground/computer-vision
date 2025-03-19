@@ -198,6 +198,16 @@ class ALBEF(nn.Module):
         input_ids, labels = self.mask(
             input_ids, self.text_encoder.config.vocab_size, targets=labels, probability_matrix=probability_matrix
         )
+        with torch.no_grad():
+            logits_m = self.text_encoder_m(
+                input_ids,
+                attention_mask=text1.attention_mask,
+                encoder_hidden_states=image_embeds_m,
+                encoder_attention_mask=image_attn_mask,
+                return_dict=True,
+                return_logits=True,
+            )
+            prediction = F.softmax(logits_m, dim=-1)
 
         print("loss: ", loss_cl, loss_pitm, loss_prd)
         return loss_cl
@@ -240,14 +250,14 @@ class ALBEF(nn.Module):
         self.queue_ptr[0] = ptr
 
     def mask(self, input_ids, vocab_size, targets=None, masked_indices=None, probability_matrix=None):
-        print('-: ', probability_matrix)
+        print("-: ", probability_matrix)
         if masked_indices is None:
             masked_indices = torch.bernoulli(probability_matrix).bool()
-        print('0: ', masked_indices)
+        print("0: ", masked_indices)
         masked_indices[input_ids == self.tokenizer.pad_token_id] = False
-        print('1: ', masked_indices)
+        print("1: ", masked_indices)
         masked_indices[input_ids == self.tokenizer.cls_token_id] = False
-        print('2: ', masked_indices)
+        print("2: ", masked_indices)
         if targets is not None:
             targets[~masked_indices] = -100  # We only compute loss on masked tokens
         # 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
