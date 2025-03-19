@@ -99,6 +99,7 @@ class ALBEF(nn.Module):
         idx = idx.view(-1, 1)  # reshape from [batch_size] to [batch_size, 1]
         idx_all = torch.cat([idx.t(), self.idx_queue.clone().detach()], dim=1)
         pos_idx = torch.eq(idx, idx_all).float()
+        print("------", idx.shape, idx_all.shape, pos_idx.shape)
         sim_targets = pos_idx / pos_idx.sum(1, keepdim=True)
 
         with torch.no_grad():
@@ -262,14 +263,11 @@ class ALBEF(nn.Module):
         self.queue_ptr[0] = ptr
 
     def mask(self, input_ids, vocab_size, targets=None, masked_indices=None, probability_matrix=None):
-        print("-: ", probability_matrix)
         if masked_indices is None:
             masked_indices = torch.bernoulli(probability_matrix).bool()
-        print("0: ", masked_indices)
         masked_indices[input_ids == self.tokenizer.pad_token_id] = False
-        print("1: ", masked_indices)
         masked_indices[input_ids == self.tokenizer.cls_token_id] = False
-        print("2: ", masked_indices)
+
         if targets is not None:
             targets[~masked_indices] = -100  # We only compute loss on masked tokens
         # 80% of the time, we replace masked input tokens with tokenizer.mask_token ([MASK])
