@@ -222,6 +222,22 @@ class ALBEF(nn.Module):
         )
         loss_mlm = mlm_output.loss
 
+        # Momentum-based Replaced Token Detection
+        with torch.no_grad():
+            probability_matrix = torch.full(labels.shape, self.mrtd_mask_probability)
+            mrtd_input_ids = self.mask(
+                mrtd_input_ids, self.text_encoder.config.vocab_size, probability_matrix=probability_matrix
+            )
+            # momentum module is used as generator
+            mrtd_logits_m = self.text_encoder_m(
+                mrtd_input_ids,
+                attention_mask=text1.attention_mask,
+                encoder_hidden_states=image_embeds_m,
+                encoder_attention_mask=image_attn_mask,
+                return_dict=True,
+                return_logits=True,
+            )
+
         print("loss: ", loss_cl, loss_pitm, loss_mlm, loss_prd)
         return loss_cl, loss_pitm, loss_mlm, loss_prd
 
