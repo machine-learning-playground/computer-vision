@@ -237,9 +237,22 @@ class ALBEF(nn.Module):
                 return_dict=True,
                 return_logits=True,
             )
+            weights = F.softmax(mrtd_logits_m, dim=-1)
+            mrtd_input_ids, mrtd_labels = self.mrtd_mask_modeling(
+                mrtd_input_ids, text1.input_ids, text1.attention_mask, weights
+            )
+        output_mrtd = self.text_encoder.bert(
+            mrtd_input_ids,
+            attention_mask=text1.attention_mask,
+            encoder_hidden_states=image_embeds,
+            encoder_attention_mask=image_attn_mask,
+            return_dict=True,
+        )
+        mrtd_output = self.mrtd_head(output_mrtd.last_hidden_state.view(-1, self.text_width))
+        loss_mrtd = F.cross_entropy(mrtd_output, mrtd_labels.view(-1))
 
-        print("loss: ", loss_cl, loss_pitm, loss_mlm, loss_prd)
-        return loss_cl, loss_pitm, loss_mlm, loss_prd
+        print("loss: ", loss_cl, loss_pitm, loss_mlm, loss_prd, loss_mrtd)
+        return loss_cl, loss_pitm, loss_mlm, loss_prd, loss_mrtd
 
     @torch.no_grad()
     def copy_params(self):
@@ -298,6 +311,18 @@ class ALBEF(nn.Module):
             return input_ids, targets
         else:
             return input_ids
+
+    def mrtd_mask_modeling(self, mrtd_input_ids, ori_input_ids, attention_mask, weights):
+        bs = mrtd_input_ids.size(0)
+        weights = weights.view(-1, weights.size(-1))
+        pred = torch.multinomial(weights, 1).view(bs, -1)
+        pred[:, 0] = self.tokenizer.cls_token_id
+        # pad_token_id is 0
+        mrtd_input_ids = pred * attention_mask
+        mrtd_labels = (pred != ori_input_ids) * attention_mask
+        mrtd_labels[mrtd_input_ids == self.tokenizer.pad_token_id] = -100
+        mrtd_labels[mrtd_input_ids == self.tokenizer.cls_token_id] = -100
+        return mrtd_input_ids, mrtd_labels
 
 
 @torch.no_grad()
