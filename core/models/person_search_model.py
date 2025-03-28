@@ -99,7 +99,6 @@ class ALBEF(nn.Module):
         idx = idx.view(-1, 1)  # reshape from [batch_size] to [batch_size, 1]
         idx_all = torch.cat([idx.t(), self.idx_queue.clone().detach()], dim=1)
         pos_idx = torch.eq(idx, idx_all).float()
-        print("------", idx.shape, idx_all.shape, pos_idx.shape)
         sim_targets = pos_idx / pos_idx.sum(1, keepdim=True)
 
         with torch.no_grad():
@@ -158,6 +157,7 @@ class ALBEF(nn.Module):
             weights_t2i.masked_fill_(mask, 0)
 
         # Select a negative image for each text
+        # Pick 1 sample from each row
         image_neg_idx = torch.multinomial(weights_t2i, 1).flatten()
         image_embeds_neg = image_embeds[image_neg_idx]
         # select a negative text for each image
@@ -313,12 +313,12 @@ class ALBEF(nn.Module):
             return input_ids
 
     def mrtd_mask_modeling(self, mrtd_input_ids, ori_input_ids, attention_mask, weights):
-        bs = mrtd_input_ids.size(0)
-        weights = weights.view(-1, weights.size(-1))
-        pred = torch.multinomial(weights, 1).view(bs, -1)
+        bs = mrtd_input_ids.size(0)  # tensor([4])  |  weights's tensor([4, seq, vocab])
+        weights = weights.view(-1, weights.size(-1))  # tensor([batch*seq, vocab_size])
+        pred = torch.multinomial(weights, 1).view(bs, -1)  # tensor([batch*seq, 1]) → tensor([batch, seq])
         pred[:, 0] = self.tokenizer.cls_token_id
         # pad_token_id is 0
-        mrtd_input_ids = pred * attention_mask
+        mrtd_input_ids = pred * attention_mask  # Only keep valid tokens, ignore paddings
         mrtd_labels = (pred != ori_input_ids) * attention_mask
         mrtd_labels[mrtd_input_ids == self.tokenizer.pad_token_id] = -100
         mrtd_labels[mrtd_input_ids == self.tokenizer.cls_token_id] = -100
