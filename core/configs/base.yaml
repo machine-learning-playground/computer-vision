@@ -2,6 +2,7 @@ train_file:  ['./dataset/RSTPReid/processed_data/train.json']
 train_image_root: './dataset/RSTPReid/imgs'
 batch_size_train: 4
 
+schedular: {sched: cosine, lr: 1e-5, epochs: 30, min_lr: 1e-6, decay_rate: 1, warmup_lr: 1e-5, warmup_epochs: 1, cooldown_epochs: 0}
 
 bert_config: 'configs/config_bert.json'
 embed_dim: 256
