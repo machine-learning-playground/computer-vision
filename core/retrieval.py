@@ -66,6 +66,12 @@ def main(args, config):
     model = ALBEF(config=config, text_encoder=args.text_encoder, tokenizer=tokenizer)
     model = model.to(device)
 
+    # Optimizer and learning rate scheduler
+    # arg_opt = utils.AttrDict(config["optimizer"])
+    # optimizer = create_optimizer(arg_opt, model)
+    # arg_sched = utils.AttrDict(config["schedular"])
+    # lr_scheduler, _ = create_scheduler(arg_sched, optimizer)
+
     # train
     _ = ""
     train_stats = train(model, train_loader, _, tokenizer, _, _, device, _, config)

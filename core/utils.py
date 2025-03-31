@@ -1,6 +1,12 @@
 import torch.distributed as dist
 
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+
 def is_dist_avail_and_initialized():
     if not dist.is_available():
         return False
