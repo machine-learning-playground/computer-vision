@@ -5,10 +5,10 @@ import ruamel.yaml as yaml
 import torch
 import torch.backends.cudnn as cudnn
 
-import utils
 from dataset import create_dataset, create_loader
 from models.person_search_model import ALBEF
 from models.tokenization_bert import BertTokenizer
+from utils.common import get_rank
 
 
 def train(model, data_loader, optimizer, tokenizer, epoch, warmup_steps, device, scheduler, config):
@@ -49,7 +49,7 @@ def seed_everything(seed):
 def main(args, config):
     device = torch.device(args.device)
 
-    seed = args.seed + utils.get_rank()
+    seed = args.seed + get_rank()
     seed_everything(seed)
 
     train_dataset = create_dataset("ps", config)

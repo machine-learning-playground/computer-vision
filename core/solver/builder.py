@@ -1,4 +1,9 @@
-def create_optimizer(args, model):
+import torch
+
+from .scheduler import LRSchedulerWithWarmup
+
+
+def build_optimizer(args, model):
     params = []
 
     print(f"Using {args.lr_factor} times learning rate for random init module ")
@@ -40,3 +45,18 @@ def create_optimizer(args, model):
         NotImplementedError
 
     return optimizer
+
+
+def build_scheduler(args, optimizer):
+    return LRSchedulerWithWarmup(
+        optimizer,
+        milestones=args.milestones,
+        gamma=args.gamma,
+        warmup_factor=args.warmup_factor,
+        warmup_epochs=args.warmup_epochs,
+        warmup_method=args.warmup_method,
+        total_epochs=args.num_epoch,
+        mode=args.lrscheduler,
+        target_lr=args.target_lr,
+        power=args.power,
+    )
