@@ -8,7 +8,8 @@ import torch.backends.cudnn as cudnn
 from dataset import create_dataset, create_loader
 from models.person_search_model import ALBEF
 from models.tokenization_bert import BertTokenizer
-from utils.common import get_rank
+from solver import build_optimizer, build_scheduler
+from utils.common import get_rank, parse_config
 
 
 def train(model, data_loader, optimizer, tokenizer, epoch, warmup_steps, device, scheduler, config):
@@ -46,31 +47,29 @@ def seed_everything(seed):
     cudnn.benchmark = True
 
 
-def main(args, config):
-    device = torch.device(args.device)
+def main(config):
+    device = torch.device(config.device)
 
-    seed = args.seed + get_rank()
+    seed = config.seed + get_rank()
     seed_everything(seed)
 
     train_dataset = create_dataset("ps", config)
     train_loader = create_loader(train_dataset, config["batch_size_train"])
 
-    max_epoch = config["schedular"]["epochs"]
-    warmup_steps = config["schedular"]["warmup_epochs"]
+    max_epoch = config["scheduler"]["total_epochs"]
+    warmup_steps = config["scheduler"]["warmup_epochs"]
     start_epoch = 0
     best = 0
     best_epoch = 0
     best_log = ""
 
-    tokenizer = BertTokenizer.from_pretrained(args.text_encoder)
-    model = ALBEF(config=config, text_encoder=args.text_encoder, tokenizer=tokenizer)
+    tokenizer = BertTokenizer.from_pretrained(config.text_encoder)
+    model = ALBEF(config=config, text_encoder=config.text_encoder, tokenizer=tokenizer)
     model = model.to(device)
 
     # Optimizer and learning rate scheduler
-    # arg_opt = utils.AttrDict(config["optimizer"])
-    # optimizer = create_optimizer(arg_opt, model)
-    # arg_sched = utils.AttrDict(config["schedular"])
-    # lr_scheduler, _ = create_scheduler(arg_sched, optimizer)
+    optimizer = build_optimizer(config.solver, model)
+    lr_scheduler = build_scheduler(config.scheduler, optimizer)
 
     # train
     _ = ""
@@ -78,15 +77,7 @@ def main(args, config):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config", default="./configs/base.yaml")
-    parser.add_argument("--text_encoder", default="bert-base-uncased")
-    parser.add_argument("--device", default="cuda")
-    parser.add_argument("--seed", default=42, type=int)
-    args = parser.parse_args()
+    config_path = "./configs/base.yaml"
+    config = parse_config(config_path)
 
-    yaml_loader = yaml.YAML()
-    with open(args.config, "r") as file:
-        config = yaml_loader.load(file)
-
-    main(args, config)
+    main(config)

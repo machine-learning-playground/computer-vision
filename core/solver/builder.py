@@ -55,8 +55,8 @@ def build_scheduler(args, optimizer):
         warmup_factor=args.warmup_factor,
         warmup_epochs=args.warmup_epochs,
         warmup_method=args.warmup_method,
-        total_epochs=args.num_epoch,
-        mode=args.lrscheduler,
+        total_epochs=args.total_epochs,
+        mode=args.lr_scheduler,
         target_lr=args.target_lr,
         power=args.power,
     )
