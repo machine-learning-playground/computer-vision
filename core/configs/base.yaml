@@ -13,7 +13,7 @@ mrtd_mask_probability: 0.3
 queue_size: 65536
 
 
-bert_config: "configs/config_bert.json"
+bert_config: "configs/bert_configs.json"
 text_encoder: bert-base-uncased
 embed_dim: 256
 max_words: 50
