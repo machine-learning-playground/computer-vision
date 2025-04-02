@@ -54,17 +54,17 @@ def main(config):
     seed_everything(seed)
 
     train_dataset = create_dataset("ps", config)
-    train_loader = create_loader(train_dataset, config["batch_size_train"])
+    train_loader = create_loader(train_dataset, config.batch_size_train)
 
-    max_epoch = config["scheduler"]["total_epochs"]
-    warmup_steps = config["scheduler"]["warmup_epochs"]
+    max_epoch = config.scheduler.total_epochs
+    warmup_steps = config.scheduler.warmup_epochs
     start_epoch = 0
     best = 0
     best_epoch = 0
     best_log = ""
 
     tokenizer = BertTokenizer.from_pretrained(config.text_encoder)
-    model = ALBEF(config=config, text_encoder=config.text_encoder, tokenizer=tokenizer)
+    model = ALBEF(config=config, tokenizer=tokenizer)
     model = model.to(device)
 
     # Optimizer and learning rate scheduler

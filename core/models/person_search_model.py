@@ -10,13 +10,13 @@ from models.xbert import BertConfig, BertForMaskedLM
 class ALBEF(nn.Module):
     def __init__(
         self,
-        text_encoder=None,
         tokenizer=None,
         config=None,
     ):
         super().__init__()
 
         self.tokenizer = tokenizer
+        text_encoder = config.text_encoder
         embed_dim = config["embed_dim"]  # out_features: 256
 
         ###  Text encoder  ###
