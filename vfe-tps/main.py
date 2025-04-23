@@ -5,7 +5,7 @@ import numpy as np
 import random
 import time
 
-# from datasets import build_dataloader
+from datasets import build_dataloader
 # from processor.processor import do_train
 # from utils.checkpoint import Checkpointer
 from utils.iotools import save_train_configs
@@ -49,8 +49,8 @@ if __name__ == "__main__":
     logger.info(str(args).replace(",", "\n"))
     save_train_configs(args.output_dir, args)
 
-    # # get image-text pair datasets dataloader
-    # train_loader, val_img_loader, val_txt_loader, num_classes = build_dataloader(args)
+    # get image-text pair datasets dataloader
+    train_loader, val_img_loader, val_txt_loader, num_classes = build_dataloader(args)
     # model = build_model(args, num_classes)
     # logger.info("Total params: %2.fM" % (sum(p.numel() for p in model.parameters()) / 1000000.0))
     # model.to(device)
