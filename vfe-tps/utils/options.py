@@ -9,7 +9,6 @@ def get_args():
     parser.add_argument("--output_dir", default="logs")
     parser.add_argument("--log_period", default=100)
     parser.add_argument("--eval_period", default=1)
-    # parser.add_argument("--val_dataset", default="test")  # use val set when evaluate, if test use test set
     parser.add_argument("--val_dataset", default="val")  # use val set when evaluate, if test use test set
     parser.add_argument("--resume", default=False, action="store_true")
     parser.add_argument("--resume_ckpt_file", default="", help="resume from ...")
@@ -76,7 +75,7 @@ def get_args():
     parser.add_argument("--power", type=float, default=0.9)
 
     ######################## dataset ########################
-    parser.add_argument("--dataset_name", default="CUHK-PEDES", help="[CUHK-PEDES, ICFG-PEDES, RSTPReid]")
+    parser.add_argument("--dataset_name", default="RSTPReid", help="[CUHK-PEDES, ICFG-PEDES, RSTPReid]")
     parser.add_argument("--sampler", default="random", help="choose sampler from [identity, random]")
     parser.add_argument("--num_instance", type=int, default=4)
     parser.add_argument("--root_dir", default="./data")

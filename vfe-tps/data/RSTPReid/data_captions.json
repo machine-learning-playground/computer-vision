@@ -1,0 +1,38 @@
+[
+  {
+    "id": 0,
+    "img_path": "0000_c14_0031.jpg",
+    "captions": [
+      "The man is wearing a grey jacket and a blue shirt.His trousers are black and his shoes are brown.He is walking.",
+      "The man is a strong man who is in a grey jacket.His shirt is blue and his trousers is black."
+    ],
+    "split": "train"
+  },
+  {
+    "id": 0,
+    "img_path": "0000_c14_0032.jpg",
+    "captions": [
+      "He is wearing a grey jacket with a blue shirt inside.He put his hands in his pockets.He is wearing a pair of glasses.He is carrying a black bag.",
+      "The man with glasses is wearing a grey jacket with a blue shirt inside. He has his hands in his pockets."
+    ],
+    "split": "train"
+  },
+  {
+    "id": 1,
+    "img_path": "0001_c1_0014.jpg",
+    "captions": [
+      "A man with black hair, wearing glasses, a gray and black shirt, black pants and black shoes, carrying a black backpack, is walking, a hand in the pocket",
+      "The man is walking with a pocket in his hand.He is wearing a pair of glasses.He is wearing a black jacket and grey trousers.His shirt is blue and shoes are brown."
+    ],
+    "split": "train"
+  },
+  {
+    "id": 1,
+    "img_path": "0001_c14_0033.jpg",
+    "captions": [
+      "The man is wearing a black coat and dark blue trousers. He walked with a black bag on his back.",
+      "A man with black hair, wearing glasses, a gray and black shirt, black pants and black shoes, carrying a black backpack, is walking, a hand in the pocket"
+    ],
+    "split": "train"
+  }
+]
