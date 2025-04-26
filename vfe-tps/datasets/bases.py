@@ -16,28 +16,34 @@ class BaseDataset(object):
     """
     Base class of text to image reid dataset
     """
+
     logger = logging.getLogger("IRRA.dataset")
 
     def show_dataset_info(self):
-        num_train_pids, num_train_imgs, num_train_captions = len(
-            self.train_id_container), len(self.train_annos), len(self.train)
-        num_test_pids, num_test_imgs, num_test_captions = len(
-            self.test_id_container), len(self.test_annos), len(
-                self.test['captions'])
-        num_val_pids, num_val_imgs, num_val_captions = len(
-            self.val_id_container), len(self.val_annos), len(
-                self.val['captions'])
+        num_train_pids, num_train_imgs, num_train_captions = (
+            len(self.train_id_container),
+            len(self.train_annos),
+            len(self.train),
+        )
+        num_test_pids, num_test_imgs, num_test_captions = (
+            len(self.test_id_container),
+            len(self.test_annos),
+            len(self.test["captions"]),
+        )
+        num_val_pids, num_val_imgs, num_val_captions = (
+            len(self.val_id_container),
+            len(self.val_annos),
+            len(self.val["captions"]),
+        )
 
         # TODO use prettytable print comand line table
 
         self.logger.info(f"{self.__class__.__name__} Dataset statistics:")
-        table = PrettyTable(['subset', 'ids', 'images', 'captions'])
-        table.add_row(
-            ['train', num_train_pids, num_train_imgs, num_train_captions])
-        table.add_row(
-            ['test', num_test_pids, num_test_imgs, num_test_captions])
-        table.add_row(['val', num_val_pids, num_val_imgs, num_val_captions])
-        self.logger.info('\n' + str(table))
+        table = PrettyTable(["subset", "ids", "images", "captions"])
+        table.add_row(["train", num_train_pids, num_train_imgs, num_train_captions])
+        table.add_row(["test", num_test_pids, num_test_imgs, num_test_captions])
+        table.add_row(["val", num_val_pids, num_val_imgs, num_val_captions])
+        self.logger.info("\n" + str(table))
 
 
 def tokenize(caption: str, tokenizer, text_length=77, truncate=True) -> torch.LongTensor:
@@ -51,19 +57,13 @@ def tokenize(caption: str, tokenizer, text_length=77, truncate=True) -> torch.Lo
             tokens = tokens[:text_length]
             tokens[-1] = eot_token
         else:
-            raise RuntimeError(
-                f"Input {caption} is too long for context length {text_length}"
-            )
-    result[:len(tokens)] = torch.tensor(tokens)
+            raise RuntimeError(f"Input {caption} is too long for context length {text_length}")
+    result[: len(tokens)] = torch.tensor(tokens)
     return result
 
 
 class ImageTextDataset(Dataset):
-    def __init__(self,
-                 dataset,
-                 transform=None,
-                 text_length: int = 77,
-                 truncate: bool = True):
+    def __init__(self, dataset, transform=None, text_length: int = 77, truncate: bool = True):
         self.dataset = dataset
         self.transform = transform
         self.text_length = text_length
@@ -85,13 +85,7 @@ class ImageTextDataset(Dataset):
 
         mim_mask = torch.tensor(self.mask_generator())
 
-        ret = {
-            'pids': pid,
-            'image_ids': image_id,
-            'images': img,
-            'caption_ids': tokens,
-            'mim_mask': mim_mask
-        }
+        ret = {"pids": pid, "image_ids": image_id, "images": img, "caption_ids": tokens, "mim_mask": mim_mask}
 
         return ret
 
@@ -114,11 +108,7 @@ class ImageDataset(Dataset):
 
 
 class TextDataset(Dataset):
-    def __init__(self,
-                 caption_pids,
-                 captions,
-                 text_length: int = 77,
-                 truncate: bool = True):
+    def __init__(self, caption_pids, captions, text_length: int = 77, truncate: bool = True):
         self.caption_pids = caption_pids
         self.captions = captions
         self.text_length = text_length
@@ -137,11 +127,7 @@ class TextDataset(Dataset):
 
 
 class ImageTextMLMDataset(Dataset):
-    def __init__(self,
-                 dataset,
-                 transform=None,
-                 text_length: int = 77,
-                 truncate: bool = True):
+    def __init__(self, dataset, transform=None, text_length: int = 77, truncate: bool = True):
         self.dataset = dataset
         self.transform = transform
         self.text_length = text_length
@@ -159,21 +145,23 @@ class ImageTextMLMDataset(Dataset):
         img = read_image(img_path)
         if self.transform is not None:
             img = self.transform(img)
-        
-        caption_tokens = tokenize(caption, tokenizer=self.tokenizer, text_length=self.text_length, truncate=self.truncate)
+
+        caption_tokens = tokenize(
+            caption, tokenizer=self.tokenizer, text_length=self.text_length, truncate=self.truncate
+        )
 
         mlm_tokens, mlm_labels = self._build_random_masked_tokens_and_labels(caption_tokens.cpu().numpy())
 
         mim_mask = torch.tensor(self.mask_generator())
 
         ret = {
-            'pids': pid,
-            'image_ids': image_id,
-            'images': img,
-            'caption_ids': caption_tokens,
-            'mlm_ids': mlm_tokens,
-            'mlm_labels': mlm_labels,
-            'mim_mask': mim_mask
+            "pids": pid,
+            "image_ids": image_id,
+            "images": img,
+            "caption_ids": caption_tokens,
+            "mlm_ids": mlm_tokens,
+            "mlm_labels": mlm_labels,
+            "mim_mask": mim_mask,
         }
 
         return ret
@@ -185,8 +173,8 @@ class ImageTextMLMDataset(Dataset):
         :return: (list of int, list of int), masked tokens and related labels for MLM prediction
         """
         mask = self.tokenizer.encoder["<|mask|>"]
-        token_range = list(range(1, len(self.tokenizer.encoder)-3)) # 1 ~ 49405
-        
+        token_range = list(range(1, len(self.tokenizer.encoder) - 3))  # 1 ~ 49405
+
         labels = []
         for i, token in enumerate(tokens):
             if 0 < token < 49405:
@@ -212,7 +200,7 @@ class ImageTextMLMDataset(Dataset):
                     labels.append(0)
             else:
                 labels.append(0)
-        
+
         if all(l == 0 for l in labels):
             # at least mask 1
             labels[1] = tokens[1]
@@ -236,7 +224,7 @@ class MaskGenerator:
         self.mask_count = int(np.ceil(self.token_count * self.mask_ratio))
 
     def __call__(self):
-        mask_idx = np.random.permutation(self.token_count)[:self.mask_count]
+        mask_idx = np.random.permutation(self.token_count)[: self.mask_count]
         mask = np.zeros(self.token_count, dtype=int)
         mask[mask_idx] = 1
 
