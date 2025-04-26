@@ -77,7 +77,6 @@ def get_args():
 
     ######################## dataset ########################
     parser.add_argument("--dataset_name", default="CUHK-PEDES", help="[CUHK-PEDES, ICFG-PEDES, RSTPReid]")
-    # parser.add_argument("--sampler", default="random", help="choose sampler from [identity, random]")
     parser.add_argument("--sampler", default="random", help="choose sampler from [identity, random]")
     parser.add_argument("--num_instance", type=int, default=4)
     parser.add_argument("--root_dir", default="./data")

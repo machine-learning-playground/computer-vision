@@ -2,11 +2,7 @@ import logging
 import torch
 import torchvision.transforms as T
 from torch.utils.data import DataLoader
-from datasets.sampler import RandomIdentitySampler
-from datasets.sampler_ddp import RandomIdentitySampler_DDP
-from torch.utils.data.distributed import DistributedSampler
 
-from utils.comm import get_world_size
 
 from .bases import ImageDataset, TextDataset, ImageTextDataset, ImageTextMLMDataset
 
@@ -89,27 +85,7 @@ def build_dataloader(args, tranforms=None):
         else:
             train_set = ImageTextDataset(dataset.train, train_transforms, text_length=args.text_length)
 
-        if args.sampler == "identity":
-            if args.distributed:
-                logger.info("using ddp random identity sampler")
-                logger.info("DISTRIBUTED TRAIN START")
-                mini_batch_size = args.batch_size // get_world_size()
-                # TODO wait to fix bugs
-                data_sampler = RandomIdentitySampler_DDP(dataset.train, args.batch_size, args.num_instance)
-                batch_sampler = torch.utils.data.sampler.BatchSampler(data_sampler, mini_batch_size, True)
-
-            else:
-                logger.info(
-                    f"using random identity sampler: batch_size: {args.batch_size}, id: {args.batch_size // args.num_instance}, instance: {args.num_instance}"
-                )
-                train_loader = DataLoader(
-                    train_set,
-                    batch_size=args.batch_size,
-                    sampler=RandomIdentitySampler(dataset.train, args.batch_size, args.num_instance),
-                    num_workers=num_workers,
-                    collate_fn=collate,
-                )
-        elif args.sampler == "random":
+        if args.sampler == "random":
             # TODO add distributed condition
             logger.info("using random sampler")
             train_loader = DataLoader(
