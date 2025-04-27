@@ -19,12 +19,13 @@ def do_train(
     args.training = False
 
     # train
+    # TEST 1 epoch
+    num_epoch = 1
     for epoch in range(start_epoch, num_epoch + 1):
         model.train()
         model.clear_dic()
 
         for n_iter, batch in enumerate(train_loader):
             batch = {k: v.to(device) for k, v in batch.items()}
-            print("-----", n_iter, batch.items())
-            # ret = model(batch)
+            ret = model(batch)
             # total_loss = sum([v for k, v in ret.items() if "loss" in k])
