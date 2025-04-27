@@ -5,8 +5,7 @@ import numpy as np
 import random
 import time
 
-from datasets.build import build_dataloader
-
+from datasets import build_dataloader
 # from processor.processor import do_train
 # from utils.checkpoint import Checkpointer
 from utils.iotools import save_train_configs
